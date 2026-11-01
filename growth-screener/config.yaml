@@ -1,0 +1,23 @@
+# Universe: any of sp500, nasdaq100, sp400 (midcap). Extra tickers are added on top.
+universe: [sp500, nasdaq100, sp400]
+extra_tickers: []          # e.g. [PLTR, CRWD, SHOP]
+
+# Hard filters (a stock must pass all of these to be ranked)
+filters:
+  min_market_cap: 2000000000         # USD
+  min_avg_dollar_volume: 20000000    # 50-day average, USD
+  min_revenue_growth: 0.15       # YoY quarterly revenue growth (0.15 = 15%)
+  min_gross_margin: 0.30
+  require_above_200dma: true
+  max_pct_below_52w_high: 0.35   # skip stocks more than 35% off their high
+  exclude_sectors: []            # e.g. [Energy, Basic Materials] to drop commodity-driven growth
+
+# Composite score weights (normalized automatically)
+weights:
+  growth: 0.40      # revenue growth, earnings growth, forward EPS growth
+  quality: 0.20     # gross margin, operating margin, ROE
+  momentum: 0.25    # 6m / 12m return, distance to 52w high
+  valuation: 0.15   # PEG, forward P/E (lower is better)
+
+top_n: 25
+fundamentals_max_age_hours: 24   # re-use cached fundamentals younger than this
