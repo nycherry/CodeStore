@@ -125,7 +125,7 @@ def write_etf_report(res: dict, cfg: dict) -> str:
     for r in res["redundant"]:
         sa, sb = score.get(r["a"]), score.get(r["b"])
         keep = "–" if pd.isna(sa) or pd.isna(sb) else (r["a"] if sa >= sb else r["b"])
-        redundant.append({**r, "overlap": fmt(r["overlap"], "pct"), "scores": pair_scores(r["a"], r["b"]), "keep": keep})
+        redundant.append({**r, "corr": fmt(r["corr"], "f2"), "overlap": fmt(r["overlap"], "pct"), "scores": pair_scores(r["a"], r["b"]), "keep": keep})
     swaps = [{**s, "scores": f"{s['own_score']:.0f} → {s['alt_score']:.0f}",
               "fees": f"{fmt(s['own_er'], 'pct2')} → {fmt(s['alt_er'], 'pct2')}",
               "cagrs": f"{fmt(s['own_cagr'], 'pct')} → {fmt(s['alt_cagr'], 'pct')}"} for s in res["swaps"]]

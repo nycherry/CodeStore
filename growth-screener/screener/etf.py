@@ -64,7 +64,7 @@ def _fetch_info(ticker: str) -> dict | None:
             try:  # trailing-12-month distributions / price (Yahoo's "yield" field is unreliable)
                 div = tk.dividends
                 if price and not div.empty:
-                    yld = float(div[div.index >= div.index[-1] - pd.Timedelta(days=365)].sum()) / price
+                    yld = float(div[div.index >= pd.Timestamp.now(tz=div.index.tz) - pd.Timedelta(days=365)].sum()) / price
                     if div.index[-1] < pd.Timestamp.now(tz=div.index.tz) - pd.Timedelta(days=400):
                         yld = 0.0
                 elif price:
@@ -89,7 +89,7 @@ def _fetch_info(ticker: str) -> dict | None:
 
 
 def fetch(cfg: dict, con) -> None:
-    tickers = list(dict.fromkeys(cfg["portfolio"] + cfg["candidates"]))
+    tickers = list(dict.fromkeys(cfg["portfolio"] + cfg["candidates"] + [cfg.get("benchmark", "VOO")]))
     print(f"ETF universe: {len(tickers)} tickers")
     update_prices(con, tickers, period=cfg.get("history", "10y"))
     print("  fund info...")
@@ -154,7 +154,10 @@ def analyze(cfg: dict, con) -> dict:
     info = con.execute("SELECT * FROM etf_info").df().set_index("ticker")
     group_of = {t: g for g, ts in cfg["groups"].items() for t in ts}
     owned = set(cfg["portfolio"])
-    bench = closes[cfg.get("benchmark", "VOO")].dropna()
+    bench_t = cfg.get("benchmark", "VOO")
+    bench = closes[bench_t].dropna() if bench_t in closes else pd.Series(dtype=float)
+    if bench.empty:
+        print(f"  ! no prices for benchmark {bench_t}; beta not computed")
     rows = []
     for t in dict.fromkeys(cfg["portfolio"] + cfg["candidates"]):
         if t not in closes or closes[t].dropna().empty:
@@ -166,6 +169,9 @@ def analyze(cfg: dict, con) -> dict:
             row.update(info.loc[t].drop(["fetched_at"]).to_dict())
         rows.append(row)
     df = pd.DataFrame(rows)
+    for col in INFO_COLS:  # fund info may be missing entirely (e.g. Yahoo rate limit)
+        if col not in df:
+            df[col] = np.nan
     df = _score(df, cfg)
     df["warnings"] = df.apply(_warnings, axis=1)
     corr = _correlations(closes, [t for t in cfg["portfolio"] if t in closes])
@@ -174,6 +180,8 @@ def analyze(cfg: dict, con) -> dict:
             "swaps": _swaps(df, cfg, closes)}
 
 
+INFO_COLS = ("name", "quote_type", "category", "family", "aum", "expense_ratio", "yield", "beta_3y",
+             "inception", "pe", "top_holdings", "sectors")
 RISK_KEYS = ("volatility", "sharpe", "sortino", "max_drawdown")
 
 
@@ -236,7 +244,7 @@ def _warnings(r) -> str:
 
 def _correlations(closes: pd.DataFrame, tickers: list[str]) -> pd.DataFrame:
     r = closes[tickers].iloc[-3 * TD - 1:].pct_change(fill_method=None)
-    return r.corr(min_periods=TD // 2).round(2)
+    return r.corr(min_periods=TD // 2)
 
 
 def _overlap(owned: pd.DataFrame) -> dict:
