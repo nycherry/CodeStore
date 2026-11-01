@@ -61,6 +61,31 @@ Each metric is percentile-ranked against the whole universe (0–100). The ranks
 
 To change the strategy, edit `config.yaml`, or use the sliders in the dashboard.
 
+## ETF analyzer
+
+Compares the ETFs you own (or watch) against alternatives in the same category.
+
+```bash
+python -m screener.cli etf                 # download data + write reports/etf_latest.html (~1 min)
+python -m screener.cli etf --cached        # re-analyze cached data
+python -m screener.cli etf --tickers QQQ,SMH,SCHD   # analyze a different list
+```
+
+Edit `etf_config.yaml` to set your `portfolio`, the `candidates` to compare against, and which `groups` each fund belongs to.
+Each fund is scored 0–100 only against funds in its group:
+
+| Factor | Weight | Metrics |
+|---|---|---|
+| Returns | 30% | 1y return, 3y and 5y annualized total return |
+| Risk-adjusted | 30% | Sharpe, Sortino |
+| Risk | 15% | max drawdown, volatility |
+| Cost | 15% | expense ratio, fund size |
+| Income | 20% | trailing 12-month yield (income groups only) |
+
+Risk stats use the same window for every fund in a group: 5 years, or 3 years if any fund is younger.
+The report also lists suggested swaps, pairs of funds you own that overlap heavily (3y correlation ≥ 0.97), and warnings (leveraged/inverse decay, VIX is an index, high fees, small funds, short history).
+Leveraged/inverse and volatility funds get metrics and warnings but no score.
+
 ## Run it daily (optional)
 
 macOS/Linux cron, weekdays at 5pm after the close:
@@ -77,6 +102,9 @@ screener/universe.py  index constituents (Wikipedia, with fallback list)
 screener/data.py      Yahoo Finance -> DuckDB (data/market.duckdb)
 screener/scoring.py   metrics, filters, composite score
 screener/report.py    HTML/CSV report
+screener/etf.py       ETF analyzer (data/etf.duckdb)
+screener/etf_report.py ETF HTML/CSV report
+etf_config.yaml       ETF portfolio, candidates, groups, weights
 screener/cli.py       command line
 app.py                Streamlit dashboard
 ```

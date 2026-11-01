@@ -1,0 +1,41 @@
+# ETF analyzer:  python -m screener.cli etf
+# "portfolio" = the ETFs you own or watch; "candidates" = alternatives to compare against.
+portfolio: [MGK, MGC, VUG, VONG, VOO, ^VIX, QQQ, SOXX, TQQQ, SQQQ, VGT, SMH, XSD, BIB, VDE,
+            BIZD, PBDC, BXSL, JEPQ, SPYI, XLF, XLE, XBI, XLU, XLY, XLC, XLK]
+candidates: [VTI, IVV, SPYM, RSP, QQQM, SCHG, IWY, XLG, SPMO, MTUM, FTEC, IGV, SOXQ, PSI,
+             IBB, VFH, VPU, VCR, VOX, JEPI, QQQI, DIVO, SCHD, DGRO, ARCC, MAIN, QLD, VIXY]
+
+# Funds are only scored against others in the same group.
+# Groups listed under `unscored` get metrics + warnings but no score.
+groups:
+  core: [VOO, MGC, VTI, IVV, SPYM, RSP]
+  growth: [MGK, VUG, VONG, QQQ, QQQM, SCHG, IWY, XLG, SPMO, MTUM]
+  tech: [VGT, XLK, FTEC, IGV]
+  semis: [SMH, SOXX, XSD, SOXQ, PSI]
+  biotech: [XBI, IBB]
+  energy: [VDE, XLE]
+  financials: [XLF, VFH]
+  utilities: [XLU, VPU]
+  consumer_disc: [XLY, VCR]
+  communication: [XLC, VOX]
+  option_income: [JEPQ, SPYI, JEPI, QQQI, DIVO]
+  dividend: [SCHD, DGRO]
+  bdc: [BIZD, PBDC, BXSL, ARCC, MAIN]
+  leveraged_inverse: [TQQQ, SQQQ, BIB, QLD]
+  volatility: [^VIX, VIXY]
+unscored: [leveraged_inverse, volatility]
+income_groups: [option_income, dividend, bdc]   # these also score on yield
+
+benchmark: VOO
+risk_free_rate: 0.04        # used for Sharpe / Sortino
+history: max
+redundant_corr: 0.97        # flag owned pairs whose daily returns (3y) correlate above this
+swap_min_gain: 10           # suggest a swap if an alternative scores this many points higher
+
+# Factor weights (normalized). "income" only applies to income_groups.
+weights:
+  returns: 0.30         # 1y, 3y, 5y annualized total return
+  risk_adjusted: 0.30   # Sharpe, Sortino
+  risk: 0.15            # max drawdown, volatility (lower is better)
+  cost: 0.15            # expense ratio (lower), fund size (higher)
+  income: 0.20          # trailing yield
